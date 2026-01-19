@@ -177,7 +177,12 @@ app.get('/api/installation/:id', requireAuth, async (req, res) => {
         city: installation.city,
         state: installation.state,
         zip: installation.zip
-      }
+      },
+      // Include coordinates if available (skip geocoding)
+      coordinates: installation.latitude && installation.longitude ? {
+        lat: installation.latitude,
+        lng: installation.longitude
+      } : null
     });
   } catch (error) {
     console.error('Error fetching installation:', error);

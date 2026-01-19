@@ -3,27 +3,31 @@ import FormData from 'form-data';
 import https from 'https';
 
 const INSTALLATION_OBJECT_ID = '2-31703261';
-const PLACE_OBJECT_ID = process.env.HUBSPOT_PLACE_OBJECT_ID;
+const PLACE_OBJECT_ID = '2-36857150';
 
 const INSTALLATION_PROPERTIES = [
   'hs_object_id',
-  'name',
-  'address',
+  'installation_name',
+  'place_address_line_1',
+  'place_full_address',
   'city',
   'state',
   'zip',
+  'place_latitude',
+  'place_longitude',
   'site_plan_url',
   'hs_pipeline_stage'
 ];
 
 const PLACE_PROPERTIES = [
   'hs_object_id',
-  'name',
-  'address',
-  'street_address_line_2',
-  'city',
-  'state',
-  'zip'
+  'full_address',
+  'address_line_2',
+  'address_city',
+  'state_province_region',
+  'address_zip',
+  'latitude',
+  'longitude'
 ];
 
 let hubspotClient = null;
@@ -54,33 +58,53 @@ export async function getInstallationById(installationId) {
       installationId,
       INSTALLATION_PROPERTIES
     );
-    
-    const installation = response.properties;
-    
-    // Try to get associated Place for full address
-    if (PLACE_OBJECT_ID) {
+
+    const props = response.properties;
+
+    // Normalize property names for consistent API response
+    // Installation now has Place data synced to these properties
+    const installation = {
+      name: props.installation_name,
+      address: props.place_address_line_1 || props.place_full_address,
+      city: props.city,
+      state: props.state,
+      zip: props.zip,
+      latitude: props.place_latitude ? parseFloat(props.place_latitude) : null,
+      longitude: props.place_longitude ? parseFloat(props.place_longitude) : null,
+      site_plan_url: props.site_plan_url,
+      hs_pipeline_stage: props.hs_pipeline_stage
+    };
+
+    // If we don't have address data from Installation, try to get associated Place
+    if (!installation.address && PLACE_OBJECT_ID) {
       try {
         const place = await getAssociatedPlace(installationId);
         if (place) {
-          // Use Place address if Installation doesn't have one
-          if (!installation.address && place.name) {
-            installation.address = place.name;
+          // Use Place address data
+          if (!installation.address && place.full_address) {
+            installation.address = place.full_address;
           }
-          if (!installation.city && place.city) {
-            installation.city = place.city;
+          if (!installation.city && place.address_city) {
+            installation.city = place.address_city;
           }
-          if (!installation.state && place.state) {
-            installation.state = place.state;
+          if (!installation.state && place.state_province_region) {
+            installation.state = place.state_province_region;
           }
-          if (!installation.zip && place.zip) {
-            installation.zip = place.zip;
+          if (!installation.zip && place.address_zip) {
+            installation.zip = place.address_zip;
+          }
+          if (!installation.latitude && place.latitude) {
+            installation.latitude = parseFloat(place.latitude);
+          }
+          if (!installation.longitude && place.longitude) {
+            installation.longitude = parseFloat(place.longitude);
           }
         }
       } catch (placeError) {
         console.warn('Could not fetch associated Place:', placeError.message);
       }
     }
-    
+
     return installation;
   } catch (error) {
     console.error('Error fetching installation:', error.message);

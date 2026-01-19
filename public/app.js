@@ -52,20 +52,22 @@ async function init() {
 
     let customerName = 'Demo Customer';
     let address = '123 Main St, Denver, CO 80202';
+    let coordinates = null;
 
     // In demo mode, skip HubSpot lookup
     if (!demoMode && installationId) {
       const installation = await fetchInstallation(installationId);
       customerName = installation.name || 'Unknown';
       address = installation.address || 'No address';
+      coordinates = installation.coordinates; // Pre-fetched lat/lng from Place
     }
 
     // Update UI with installation info
     customerNameEl.textContent = customerName;
     addressEl.textContent = address;
 
-    // Initialize canvas
-    await initCanvas(address);
+    // Initialize canvas (pass coordinates to skip geocoding if available)
+    await initCanvas(address, coordinates);
 
     // Setup tool handlers
     setupToolHandlers();
@@ -128,8 +130,10 @@ async function geocodeAddress(address) {
 
 /**
  * Initialize Fabric.js canvas with satellite imagery
+ * @param {string} address - Address to geocode if coordinates not available
+ * @param {Object} coordinates - Pre-fetched coordinates {lat, lng} from Place record (optional)
  */
-async function initCanvas(address) {
+async function initCanvas(address, coordinates = null) {
   const container = document.querySelector('.canvas-container');
   const containerWidth = container.clientWidth;
   const containerHeight = container.clientHeight;
@@ -146,10 +150,23 @@ async function initCanvas(address) {
   });
 
   // Load satellite image
-  if (googleMapsApiKey && address) {
+  if (googleMapsApiKey) {
     try {
-      const location = await geocodeAddress(address);
-      await loadSatelliteImage(location.lat, location.lng, containerWidth, containerHeight);
+      let location;
+      // Use pre-fetched coordinates if available, otherwise geocode
+      if (coordinates && coordinates.lat && coordinates.lng) {
+        location = coordinates;
+        console.log('Using pre-fetched coordinates from Place record:', location);
+      } else if (address) {
+        location = await geocodeAddress(address);
+        console.log('Geocoded address to:', location);
+      }
+
+      if (location) {
+        await loadSatelliteImage(location.lat, location.lng, containerWidth, containerHeight);
+      } else {
+        addPlaceholderBackground(containerWidth, containerHeight);
+      }
     } catch (error) {
       console.warn('Could not load satellite image:', error);
       // Continue without satellite image - show placeholder
