@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Site Plan Tool</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Fabric.js for canvas manipulation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>Site Plan</h1>
+      <div id="status" class="status"></div>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading installation...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error hidden">
+      <div class="error-icon">!</div>
+      <p id="error-message">Something went wrong</p>
+      <button onclick="location.reload()">Try Again</button>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main" class="main hidden">
+      <!-- Installation Info -->
+      <div class="info-bar">
+        <span id="customer-name" class="customer-name">Loading...</span>
+        <span id="address" class="address"></span>
+      </div>
+
+      <!-- Canvas Container -->
+      <div class="canvas-container">
+        <canvas id="placement-canvas"></canvas>
+      </div>
+
+      <!-- Tool Palette -->
+      <div class="tool-palette">
+        <button id="btn-idu" class="tool-btn idu-btn active" title="Place Indoor Unit">
+          <span class="tool-icon">IDU</span>
+        </button>
+        <button id="btn-odu" class="tool-btn odu-btn" title="Place Outdoor Unit">
+          <span class="tool-icon">ODU</span>
+        </button>
+        <button id="btn-line" class="tool-btn line-btn" title="Draw Line Set Path">
+          <span class="tool-icon">&#10230;</span>
+        </button>
+        <button id="btn-clear" class="tool-btn clear-btn" title="Clear All">
+          <span class="tool-icon">&#10006;</span>
+        </button>
+      </div>
+
+      <!-- Instructions -->
+      <div id="instructions" class="instructions">
+        <p><strong>Tap</strong> on the map to place units. <strong>Drag</strong> to reposition.</p>
+      </div>
+
+      <!-- Save Button -->
+      <div class="action-bar">
+        <button id="btn-save" class="save-btn" disabled>
+          <span class="save-text">Save Site Plan</span>
+          <span class="save-spinner hidden"></span>
+        </button>
+      </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="success-icon">&#10003;</div>
+        <h2>Saved!</h2>
+        <p>Site plan has been attached to the installation record.</p>
+        <button onclick="closeSuccessModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
