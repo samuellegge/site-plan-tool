@@ -66,15 +66,18 @@ async function init() {
     customerNameEl.textContent = customerName;
     addressEl.textContent = address;
 
+    // Show main content FIRST so canvas container has proper dimensions
+    loadingEl.classList.add('hidden');
+    mainEl.classList.remove('hidden');
+
+    // Small delay to ensure layout is calculated
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     // Initialize canvas (pass coordinates to skip geocoding if available)
     await initCanvas(address, coordinates);
 
     // Setup tool handlers
     setupToolHandlers();
-
-    // Show main content
-    loadingEl.classList.add('hidden');
-    mainEl.classList.remove('hidden');
 
   } catch (error) {
     console.error('Initialization error:', error);
@@ -138,6 +141,8 @@ async function initCanvas(address, coordinates = null) {
   const containerWidth = container.clientWidth;
   const containerHeight = container.clientHeight;
 
+  console.log('Canvas container dimensions:', containerWidth, 'x', containerHeight);
+
   // Create canvas element
   const canvasEl = document.getElementById('placement-canvas');
   canvasEl.width = containerWidth;
@@ -149,6 +154,10 @@ async function initCanvas(address, coordinates = null) {
     backgroundColor: '#1a1a2e'
   });
 
+  console.log('Fabric canvas initialized:', canvas.width, 'x', canvas.height);
+  console.log('googleMapsApiKey present:', !!googleMapsApiKey);
+  console.log('Coordinates:', coordinates);
+
   // Load satellite image
   if (googleMapsApiKey) {
     try {
@@ -158,23 +167,32 @@ async function initCanvas(address, coordinates = null) {
         location = coordinates;
         console.log('Using pre-fetched coordinates from Place record:', location);
       } else if (address) {
+        console.log('Geocoding address:', address);
         location = await geocodeAddress(address);
         console.log('Geocoded address to:', location);
       }
 
       if (location) {
+        console.log('Loading satellite image at:', location.lat, location.lng);
         await loadSatelliteImage(location.lat, location.lng, containerWidth, containerHeight);
+        console.log('Satellite image loaded successfully');
       } else {
+        console.log('No location available, showing placeholder');
         addPlaceholderBackground(containerWidth, containerHeight);
       }
     } catch (error) {
-      console.warn('Could not load satellite image:', error);
+      console.error('Could not load satellite image:', error);
       // Continue without satellite image - show placeholder
       addPlaceholderBackground(containerWidth, containerHeight);
     }
   } else {
+    console.log('No Google Maps API key, showing placeholder');
     addPlaceholderBackground(containerWidth, containerHeight);
   }
+
+  // Force canvas render
+  canvas.renderAll();
+  console.log('Canvas rendered');
 
   // Handle canvas tap to place items
   canvas.on('mouse:down', handleCanvasTap);
