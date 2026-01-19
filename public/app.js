@@ -201,10 +201,13 @@ async function loadSatelliteImage(lat, lng, width, height) {
     }
 
     fabric.Image.fromURL(mapUrl, (img) => {
-      if (!img) {
+      if (!img || !img.width) {
+        console.error('Failed to load satellite image - img is null or has no width');
         reject(new Error('Failed to load satellite image'));
         return;
       }
+
+      console.log('Satellite image loaded:', img.width, 'x', img.height);
 
       // Scale image to fill canvas
       const scaleX = width / img.width;
@@ -222,7 +225,7 @@ async function loadSatelliteImage(lat, lng, width, height) {
 
       canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
       resolve();
-    });
+    }, { crossOrigin: 'anonymous' });
   });
 }
 
