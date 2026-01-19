@@ -167,19 +167,21 @@ async function initCanvas(address) {
 }
 
 /**
- * Load satellite image from Google Maps Static API
+ * Load satellite image from server proxy (avoids CORS issues)
  */
 async function loadSatelliteImage(lat, lng, width, height) {
   return new Promise((resolve, reject) => {
-    // Google Maps Static API URL
-    const zoom = 20; // Close zoom for residential
-    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
-      `center=${lat},${lng}` +
-      `&zoom=${zoom}` +
-      `&size=${Math.min(width, 640)}x${Math.min(height, 640)}` +
-      `&scale=2` +
-      `&maptype=satellite` +
-      `&key=${googleMapsApiKey}`;
+    // Use server proxy to fetch satellite image
+    const zoom = 20;
+    let mapUrl = `/api/satellite?lat=${lat}&lng=${lng}&width=${Math.min(width, 640)}&height=${Math.min(height, 640)}&zoom=${zoom}`;
+    
+    // Include auth params
+    if (installationId) {
+      mapUrl += `&id=${encodeURIComponent(installationId)}`;
+    }
+    if (authToken) {
+      mapUrl += `&token=${encodeURIComponent(authToken)}`;
+    }
 
     fabric.Image.fromURL(mapUrl, (img) => {
       if (!img) {
@@ -203,7 +205,7 @@ async function loadSatelliteImage(lat, lng, width, height) {
 
       canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
       resolve();
-    }, { crossOrigin: 'anonymous' });
+    });
   });
 }
 

@@ -274,6 +274,53 @@ app.get('/api/geocode', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/satellite
+ * Proxy satellite imagery from Google Maps to avoid CORS issues
+ * Requires valid signed token (pass id and token as query params)
+ */
+app.get('/api/satellite', requireAuth, async (req, res) => {
+  try {
+    const { lat, lng, width, height, zoom } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'lat and lng are required' });
+    }
+
+    if (!GOOGLE_MAPS_API_KEY) {
+      return res.status(500).json({ error: 'Google Maps API not configured' });
+    }
+
+    const mapWidth = Math.min(parseInt(width) || 640, 640);
+    const mapHeight = Math.min(parseInt(height) || 640, 640);
+    const mapZoom = parseInt(zoom) || 20;
+
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?` +
+      `center=${lat},${lng}` +
+      `&zoom=${mapZoom}` +
+      `&size=${mapWidth}x${mapHeight}` +
+      `&scale=2` +
+      `&maptype=satellite` +
+      `&key=${GOOGLE_MAPS_API_KEY}`;
+
+    const response = await fetch(mapUrl);
+    
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch satellite image' });
+    }
+
+    const contentType = response.headers.get('content-type');
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=86400');
+    
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Satellite image error:', error);
+    res.status(500).json({ error: 'Failed to fetch satellite image' });
+  }
+});
+
+/**
  * GET /api/generate-url/:id
  * Generate a signed URL for an installation (admin/internal use)
  * This would typically be called from a HubSpot workflow or internal tool
