@@ -2,6 +2,9 @@ import { Client } from '@hubspot/api-client';
 import FormData from 'form-data';
 import https from 'https';
 
+const INSTALLATION_OBJECT_ID = '2-31703261';
+const PLACE_OBJECT_ID = process.env.HUBSPOT_PLACE_OBJECT_ID;
+
 const INSTALLATION_PROPERTIES = [
   'hs_object_id',
   'name',
@@ -11,6 +14,16 @@ const INSTALLATION_PROPERTIES = [
   'zip',
   'site_plan_url',
   'hs_pipeline_stage'
+];
+
+const PLACE_PROPERTIES = [
+  'hs_object_id',
+  'name',
+  'address',
+  'street_address_line_2',
+  'city',
+  'state',
+  'zip'
 ];
 
 let hubspotClient = null;
@@ -31,20 +44,83 @@ export function getClient() {
 }
 
 /**
- * Fetch an installation record by ID
+ * Fetch an installation record by ID, including associated Place address
  */
 export async function getInstallationById(installationId) {
   try {
     const client = getClient();
     const response = await client.crm.objects.basicApi.getById(
-      '2-31703261',
+      INSTALLATION_OBJECT_ID,
       installationId,
       INSTALLATION_PROPERTIES
     );
-    return response.properties;
+    
+    const installation = response.properties;
+    
+    // Try to get associated Place for full address
+    if (PLACE_OBJECT_ID) {
+      try {
+        const place = await getAssociatedPlace(installationId);
+        if (place) {
+          // Use Place address if Installation doesn't have one
+          if (!installation.address && place.name) {
+            installation.address = place.name;
+          }
+          if (!installation.city && place.city) {
+            installation.city = place.city;
+          }
+          if (!installation.state && place.state) {
+            installation.state = place.state;
+          }
+          if (!installation.zip && place.zip) {
+            installation.zip = place.zip;
+          }
+        }
+      } catch (placeError) {
+        console.warn('Could not fetch associated Place:', placeError.message);
+      }
+    }
+    
+    return installation;
   } catch (error) {
     console.error('Error fetching installation:', error.message);
     throw error;
+  }
+}
+
+/**
+ * Get the associated Place for an installation
+ */
+async function getAssociatedPlace(installationId) {
+  try {
+    const client = getClient();
+    
+    // Get associations from Installation to Place
+    const associations = await client.crm.associations.v4.basicApi.getPage(
+      INSTALLATION_OBJECT_ID,
+      installationId,
+      PLACE_OBJECT_ID,
+      undefined,
+      1
+    );
+    
+    if (associations.results && associations.results.length > 0) {
+      const placeId = associations.results[0].toObjectId;
+      
+      // Fetch the Place object
+      const placeResponse = await client.crm.objects.basicApi.getById(
+        PLACE_OBJECT_ID,
+        placeId,
+        PLACE_PROPERTIES
+      );
+      
+      return placeResponse.properties;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Error fetching associated place:', error.message);
+    return null;
   }
 }
 
@@ -177,7 +253,7 @@ async function associateEngagementToInstallation(engagementId, installationId, a
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.hubapi.com',
-      path: `/crm/v4/objects/notes/${engagementId}/associations/2-31703261/${installationId}`,
+      path: `/crm/v4/objects/notes/${engagementId}/associations/${INSTALLATION_OBJECT_ID}/${installationId}`,
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -223,7 +299,7 @@ export async function updateInstallationUrl(installationId, url) {
   try {
     const client = getClient();
     await client.crm.objects.basicApi.update(
-      '2-31703261',
+      INSTALLATION_OBJECT_ID,
       installationId,
       {
         properties: {
