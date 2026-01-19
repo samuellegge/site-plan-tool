@@ -200,32 +200,44 @@ async function loadSatelliteImage(lat, lng, width, height) {
       mapUrl += `&token=${encodeURIComponent(authToken)}`;
     }
 
-    fabric.Image.fromURL(mapUrl, (img) => {
-      if (!img || !img.width) {
-        console.error('Failed to load satellite image - img is null or has no width');
-        reject(new Error('Failed to load satellite image'));
-        return;
-      }
+    console.log('Loading satellite image from:', mapUrl);
 
-      console.log('Satellite image loaded:', img.width, 'x', img.height);
-
-      // Scale image to fill canvas
-      const scaleX = width / img.width;
-      const scaleY = height / img.height;
-      const scale = Math.max(scaleX, scaleY);
-
-      img.set({
-        scaleX: scale,
-        scaleY: scale,
-        left: (width - img.width * scale) / 2,
-        top: (height - img.height * scale) / 2,
+    // Pre-load image with standard HTML Image to ensure it loads
+    const imgElement = new Image();
+    imgElement.crossOrigin = 'anonymous';
+    
+    imgElement.onload = function() {
+      console.log('HTML Image loaded:', imgElement.width, 'x', imgElement.height);
+      
+      // Create Fabric.js image from the loaded HTML image
+      const fabricImg = new fabric.Image(imgElement, {
         selectable: false,
         evented: false
       });
 
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+      // Scale image to fill canvas
+      const scaleX = width / fabricImg.width;
+      const scaleY = height / fabricImg.height;
+      const scale = Math.max(scaleX, scaleY);
+
+      fabricImg.set({
+        scaleX: scale,
+        scaleY: scale,
+        left: (width - fabricImg.width * scale) / 2,
+        top: (height - fabricImg.height * scale) / 2
+      });
+
+      canvas.setBackgroundImage(fabricImg, canvas.renderAll.bind(canvas));
+      console.log('Satellite image set as background');
       resolve();
-    }, { crossOrigin: 'anonymous' });
+    };
+    
+    imgElement.onerror = function(err) {
+      console.error('Failed to load satellite image:', err);
+      reject(new Error('Failed to load satellite image'));
+    };
+    
+    imgElement.src = mapUrl;
   });
 }
 
