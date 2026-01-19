@@ -37,7 +37,7 @@ export async function getInstallationById(installationId) {
   try {
     const client = getClient();
     const response = await client.crm.objects.basicApi.getById(
-      'installations',
+      '2-31703261',
       installationId,
       INSTALLATION_PROPERTIES
     );
@@ -177,7 +177,7 @@ async function associateEngagementToInstallation(engagementId, installationId, a
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'api.hubapi.com',
-      path: `/crm/v4/objects/notes/${engagementId}/associations/installations/${installationId}`,
+      path: `/crm/v4/objects/notes/${engagementId}/associations/2-31703261/${installationId}`,
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -223,7 +223,7 @@ export async function updateInstallationUrl(installationId, url) {
   try {
     const client = getClient();
     await client.crm.objects.basicApi.update(
-      'installations',
+      '2-31703261',
       installationId,
       {
         properties: {

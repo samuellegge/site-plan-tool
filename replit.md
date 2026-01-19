@@ -28,6 +28,9 @@ site-plan-tool/
 - `SITE_PLAN_SECRET` - Secret for generating signed authentication tokens (optional, enables secure URL signing)
 - `BASE_URL` - Base URL for generating signed links (optional)
 
+## HubSpot Configuration
+- Custom Object Schema ID: `2-31703261` (Installations)
+
 ## Development
 The server runs on port 5000 with:
 ```bash
