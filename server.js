@@ -313,8 +313,8 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Site Plan Tool running on http://localhost:${PORT}`);
   console.log(`\nTest URL: http://localhost:${PORT}/?id=YOUR_INSTALLATION_ID&token=YOUR_TOKEN`);
 
